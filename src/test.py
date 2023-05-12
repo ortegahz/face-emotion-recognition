@@ -12,6 +12,14 @@ from torchvision import datasets, transforms
 from utils.general import LOGGER
 
 
+def plt_conf_matrix(y_true, y_pred, labels, ic, save_name):
+    fig, ax = plt.subplots(figsize=(8, 8))
+    plot_confusion_matrix(ic, y_pred, y_true, display_labels=labels, cmap=plt.cm.Blues, ax=ax)
+    plt.tight_layout()
+    plt.show()
+    plt.savefig(f'../run/conf_matrix_{save_name}.png')
+
+
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--path_ckpt', default='/tmp/pycharm_project_359/run/fer.pt', type=str)
@@ -90,15 +98,6 @@ def main():
     y_val_new = np.array([y if y < idx_contempt else y - 1 for y in y_val if y != idx_contempt])
     acc = 100.0 * np.mean(y_val_new == y_pred_filtered[other_indices])
     LOGGER.info(f'mean acc for minus-contempt classes -> {acc}')
-
-    def plt_conf_matrix(y_true, y_pred, labels, ic, save_name):
-        # print(y_pred.shape, y_true.shape, (y_pred == y_true).mean())
-
-        fig, ax = plt.subplots(figsize=(8, 8))
-        plot_confusion_matrix(ic, y_pred, y_true, display_labels=labels, cmap=plt.cm.Blues, ax=ax)  # ,normalize='true'
-        plt.tight_layout()
-        plt.show()
-        plt.savefig(f'../run/conf_matrix_{save_name}.png')
 
     labels = list(class_to_idx.keys())
     ic = type('IdentityClassifier', (), {"predict": lambda i: i, "_estimator_type": "classifier"})
