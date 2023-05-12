@@ -1,4 +1,5 @@
 import os
+import sys
 import argparse
 import numpy as np
 from PIL import Image
@@ -9,7 +10,10 @@ from sklearn.metrics import plot_confusion_matrix
 import torch
 from torchvision import datasets, transforms
 
-from utils.general import LOGGER
+if str(os.getcwd()) not in sys.path:
+    sys.path.append(str(os.getcwd()))
+
+from src.utils.general import LOGGER
 
 
 def plt_conf_matrix(y_true, y_pred, labels, ic, save_name):
@@ -17,7 +21,7 @@ def plt_conf_matrix(y_true, y_pred, labels, ic, save_name):
     plot_confusion_matrix(ic, y_pred, y_true, display_labels=labels, cmap=plt.cm.Blues, ax=ax)
     plt.tight_layout()
     plt.show()
-    plt.savefig(f'../run/conf_matrix_{save_name}.png')
+    plt.savefig(f'run/conf_matrix_{save_name}.png')
 
 
 def parse_args():

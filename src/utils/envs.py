@@ -6,7 +6,7 @@ import numpy as np
 
 import torch
 import torch.backends.cudnn as cudnn
-from utils.general import LOGGER
+from src.utils.general import LOGGER
 
 
 def get_envs():
