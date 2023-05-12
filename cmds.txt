@@ -1,0 +1,15 @@
+# ssh
+cd /tmp/pycharm_project_359
+
+# install
+pip install ipywidgets
+pip install scikit-learn==0.22
+
+# ipynb to py
+jupyter-notebook
+
+# train
+screen python train.py --dir_afn_root /media/sdb/data/AffectNet
+
+# test
+python test.py --path_ckpt /home/manu/tmp/fer.pt --dir_afn_root /media/manu/kingstoo/AffectNet
