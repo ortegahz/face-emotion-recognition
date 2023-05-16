@@ -64,8 +64,10 @@ class Trainer:
         self.model.load_state_dict(torch.load(self.path_ckpt, map_location=self.device))
         self.model.classifier = nn.Sequential(
             nn.Linear(in_features=1280, out_features=8))  # TODO
+        if args.path_resume:
+            self.model = torch.load(args.path_resume, map_location=self.device)
         self.model = self.model.cuda(self.device)
-        self.model = SyncBatchNorm.convert_sync_batchnorm(self.model)
+        # self.model = SyncBatchNorm.convert_sync_batchnorm(self.model)
         self.model, self.is_parallel = self.parallel_model(args, self.model, self.device)
 
         with torch_distributed_zero_first(args.rank):
