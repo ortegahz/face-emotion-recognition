@@ -10,7 +10,8 @@ import torch.nn as nn
 from torchvision import datasets, transforms
 import torch.optim as optim
 from torch.utils.data import DataLoader
-from torch.nn import SyncBatchNorm
+# from torch.nn import SyncBatchNorm
+import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data.distributed import DistributedSampler
 
@@ -167,7 +168,7 @@ class Trainer:
         epoch_val_accuracy /= len(self.test_dataset)
         epoch_val_loss /= len(self.test_dataset)
         LOGGER.info(
-            f"Epoch : {epoch} - loss : {epoch_loss:.4f} - acc: {epoch_accuracy:.4f} - val_loss : {epoch_val_loss:.4f} - val_acc: {epoch_val_accuracy:.4f}\n")
+            f"Epoch : {epoch} - loss : {epoch_loss.cpu().detach().numpy()[0]:.4f} - acc: {epoch_accuracy.cpu().detach().numpy()[0]:.4f} - val_loss : {epoch_val_loss:.4f} - val_acc: {epoch_val_accuracy:.4f}\n")
         # self.pbar.set_description(
         #     f"Epoch : {epoch + 1} - loss : {epoch_loss:.4f} - acc: {epoch_accuracy:.4f} - val_loss : {epoch_val_loss:.4f} - val_acc: {epoch_val_accuracy:.4f}\n")
         if best_acc < epoch_val_accuracy:
@@ -229,8 +230,8 @@ class Trainer:
         for epoch in range(n_epochs):
             if self.is_parallel:
                 self.train_sampler.set_epoch(epoch)
-            epoch_loss = 0
-            epoch_accuracy = 0
+            epoch_loss = torch.zeros(1, device=self.device)
+            epoch_accuracy = torch.zeros(1, device=self.device)
             self.model.train()
             self.pbar = enumerate(self.train_loader)
             if self.main_process:
@@ -240,6 +241,8 @@ class Trainer:
             for _, (data, label) in self.pbar:
                 epoch_accuracy, epoch_loss = self.train_in_step(data, label, epoch_accuracy, epoch_loss)
 
+            dist.all_reduce(epoch_accuracy, op=dist.ReduceOp.SUM)
+            dist.all_reduce(epoch_accuracy, op=dist.ReduceOp.SUM)
             epoch_accuracy /= len(self.train_dataset)
             epoch_loss /= len(self.train_dataset)
 
