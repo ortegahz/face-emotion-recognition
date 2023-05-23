@@ -125,7 +125,7 @@ class Trainer:
 
     def de_parallel(self):
         '''De-parallelize a model. Return single-GPU model if model's type is DP or DDP.'''
-        return self.model.module if self.is_parallel else self.model
+        return self.model.module if self.model_type == 'ddp' or self.model_type == 'dp' else self.model
 
     def save_model(self, best_acc, best_model):
         self.model.load_state_dict(best_model)
