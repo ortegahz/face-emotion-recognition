@@ -70,12 +70,12 @@ class Trainer:
             self.model = torch.load(args.path_resume, map_location=self.device)
         self.model = self.model.cuda(self.device)
         # self.model = SyncBatchNorm.convert_sync_batchnorm(self.model)  # acc decrease
-        self.model, self.is_parallel = self.parallel_model(args, self.model, self.device)
+        self.model, self.model_type = self.parallel_model(args, self.model, self.device)
 
         with torch_distributed_zero_first(args.rank):
             kwargs = {} if self.device == 'cpu' else {'num_workers': 8, 'pin_memory': False}
             self.train_dataset = datasets.ImageFolder(root=self.dir_train, transform=self.train_transforms)
-            if not self.is_parallel:
+            if self.model_type == 'normal' or self.model_type == 'dp':
                 self.train_loader = torch.utils.data.DataLoader(self.train_dataset, batch_size=self.batch_size,
                                                                 shuffle=True,
                                                                 **kwargs)
@@ -107,21 +107,21 @@ class Trainer:
 
     @staticmethod
     def parallel_model(args, model, device):
-        is_parallel = False
+        model_tpye = 'normal'
         # If DP mode
         dp_mode = device.type != 'cpu' and args.rank == -1
         if dp_mode and torch.cuda.device_count() > 1:
             logging.warning('WARNING: DP not recommended, use DDP instead.\n')
             model = torch.nn.DataParallel(model)
-            is_parallel = True
+            model_tpye = 'dp'
 
         # If DDP mode
         ddp_mode = device.type != 'cpu' and args.rank != -1
         if ddp_mode:
             model = DDP(model, device_ids=[args.local_rank], output_device=args.local_rank, find_unused_parameters=True)
-            is_parallel = True
+            model_tpye = 'ddp'
 
-        return model, is_parallel
+        return model, model_tpye
 
     def de_parallel(self):
         '''De-parallelize a model. Return single-GPU model if model's type is DP or DDP.'''
@@ -183,7 +183,7 @@ class Trainer:
             param.requires_grad = requires_grad
 
     def set_parameter_requires_grad_cls(self, requires_grad):
-        if self.is_parallel:
+        if self.model_type == 'dp' or self.model_type == 'ddp':
             for param in self.model.module.classifier.parameters():
                 param.requires_grad = requires_grad
         else:
@@ -229,7 +229,7 @@ class Trainer:
         best_acc = 0
         best_model = None
         for epoch in range(n_epochs):
-            if self.is_parallel:
+            if self.model_type == 'ddp':
                 self.train_sampler.set_epoch(epoch)
             epoch_loss = torch.zeros(1, device=self.device)
             epoch_accuracy = torch.zeros(1, device=self.device)
