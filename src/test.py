@@ -1,6 +1,7 @@
 import os
 import sys
 import argparse
+import logging
 import numpy as np
 from PIL import Image
 from tqdm import tqdm
@@ -12,8 +13,6 @@ from torchvision import datasets, transforms
 
 if str(os.getcwd()) not in sys.path:
     sys.path.append(str(os.getcwd()))
-
-from src.utils.general import LOGGER
 
 
 def plt_conf_matrix(y_true, y_pred, labels, ic, save_name):
@@ -35,7 +34,7 @@ def parse_args():
 
 def main():
     args = parse_args()
-    LOGGER.info(args)
+    logging.info(args)
 
     device = args.device
 
@@ -88,11 +87,11 @@ def main():
 
     y_pred = np.argmax(y_scores_val, axis=1)
     acc = 100.0 * (y_val == y_pred).sum() / len(y_val)
-    LOGGER.info(f'mean acc for eight classes -> {acc}')
+    logging.info(f'mean acc for eight classes -> {acc}')
     y_train = np.array(train_dataset.targets)
     for i in range(y_scores_val.shape[1]):
         _val_acc = (y_pred[y_val == i] == i).sum() / (y_val == i).sum()
-        LOGGER.info('%s %d/%d acc: %f' % (idx_to_class[i], (y_train == i).sum(), (y_val == i).sum(), 100 * _val_acc))
+        logging.info('%s %d/%d acc: %f' % (idx_to_class[i], (y_train == i).sum(), (y_val == i).sum(), 100 * _val_acc))
 
     # minus Contempt
     idx_contempt = class_to_idx['Contempt']
@@ -101,7 +100,7 @@ def main():
     other_indices = y_val != idx_contempt
     y_val_new = np.array([y if y < idx_contempt else y - 1 for y in y_val if y != idx_contempt])
     acc = 100.0 * np.mean(y_val_new == y_pred_filtered[other_indices])
-    LOGGER.info(f'mean acc for minus-contempt classes -> {acc}')
+    logging.info(f'mean acc for minus-contempt classes -> {acc}')
 
     labels = list(class_to_idx.keys())
     ic = type('IdentityClassifier', (), {"predict": lambda i: i, "_estimator_type": "classifier"})

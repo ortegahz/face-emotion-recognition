@@ -6,7 +6,7 @@ import numpy as np
 
 import torch
 import torch.backends.cudnn as cudnn
-from src.utils.general import LOGGER
+from src.utils.general import logging
 
 
 def get_envs():
@@ -26,12 +26,12 @@ def select_device(device):
     """
     if device == 'cpu':
         os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
-        LOGGER.info('Using CPU for training... ')
+        logging.info('Using CPU for training... ')
     elif device:
         os.environ['CUDA_VISIBLE_DEVICES'] = device
         assert torch.cuda.is_available()
         nd = len(device.strip().split(','))
-        LOGGER.info(f'Using {nd} GPU for training... ')
+        logging.info(f'Using {nd} GPU for training... ')
     cuda = device != 'cpu' and torch.cuda.is_available()
     device = torch.device('cuda:0' if cuda else 'cpu')
     return device

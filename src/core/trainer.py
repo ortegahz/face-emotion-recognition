@@ -1,9 +1,11 @@
-from copy import deepcopy
-from tqdm import tqdm
+import logging
 import numpy as np
 import shutil
 import copy
 import os
+
+from copy import deepcopy
+from tqdm import tqdm
 
 import torch
 import torch.nn as nn
@@ -20,7 +22,6 @@ import timm
 from src.core.loss import cross_entropy_with_label_smoothing
 from src.affectnet.robust_optimization import RobustOptimizer
 from src.utils.torch_utils import torch_distributed_zero_first
-from src.utils.general import LOGGER
 
 
 class Trainer:
@@ -68,7 +69,7 @@ class Trainer:
         if args.path_resume:
             self.model = torch.load(args.path_resume, map_location=self.device)
         self.model = self.model.cuda(self.device)
-        # self.model = SyncBatchNorm.convert_sync_batchnorm(self.model)
+        # self.model = SyncBatchNorm.convert_sync_batchnorm(self.model)  # acc decrease
         self.model, self.is_parallel = self.parallel_model(args, self.model, self.device)
 
         with torch_distributed_zero_first(args.rank):
@@ -110,7 +111,7 @@ class Trainer:
         # If DP mode
         dp_mode = device.type != 'cpu' and args.rank == -1
         if dp_mode and torch.cuda.device_count() > 1:
-            LOGGER.warning('WARNING: DP not recommended, use DDP instead.\n')
+            logging.warning('WARNING: DP not recommended, use DDP instead.\n')
             model = torch.nn.DataParallel(model)
             is_parallel = True
 
@@ -128,7 +129,7 @@ class Trainer:
 
     def save_model(self, best_acc, best_model):
         self.model.load_state_dict(best_model)
-        LOGGER.info(f"Best acc:{best_acc}")
+        logging.info(f"Best acc:{best_acc}")
         self.model.eval()
         with torch.no_grad():
             epoch_val_accuracy = 0
@@ -145,7 +146,7 @@ class Trainer:
                 epoch_val_loss += val_loss
         epoch_val_accuracy /= len(self.test_dataset)
         epoch_val_loss /= len(self.test_dataset)
-        LOGGER.info(
+        logging.info(
             f"val_loss : {epoch_val_loss:.4f} - val_acc: {epoch_val_accuracy:.4f}\n"
         )
         torch.save(deepcopy(self.de_parallel()), self.path_save)
@@ -167,7 +168,7 @@ class Trainer:
                 epoch_val_loss += val_loss
         epoch_val_accuracy /= len(self.test_dataset)
         epoch_val_loss /= len(self.test_dataset)
-        LOGGER.info(
+        logging.info(
             f"Epoch : {epoch} - loss : {epoch_loss.cpu().detach().numpy()[0]:.4f} - acc: {epoch_accuracy.cpu().detach().numpy()[0]:.4f} - val_loss : {epoch_val_loss:.4f} - val_acc: {epoch_val_accuracy:.4f}\n")
         # self.pbar.set_description(
         #     f"Epoch : {epoch + 1} - loss : {epoch_loss:.4f} - acc: {epoch_accuracy:.4f} - val_loss : {epoch_val_loss:.4f} - val_acc: {epoch_val_accuracy:.4f}\n")

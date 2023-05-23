@@ -1,4 +1,5 @@
 import argparse
+import logging
 import sys
 import os
 
@@ -8,7 +9,7 @@ import torch.distributed as dist
 if str(os.getcwd()) not in sys.path:
     sys.path.append(str(os.getcwd()))
 
-from src.utils.general import LOGGER
+from src.utils.general import set_logging
 from src.core.trainer import Trainer
 from src.utils.envs import get_envs, select_device
 
@@ -34,12 +35,13 @@ def main():
     args.local_rank, args.rank, args.world_size = get_envs()
     args.device_pick = select_device(args.device)
     args.local_rank, args.rank, args.world_size = get_envs()
-    LOGGER.info(f'training args are: {args}\n')
+    set_logging(args.rank)
+    logging.info(f'training args are: {args}\n')
 
     if args.local_rank != -1:  # if DDP mode
         torch.cuda.set_device(args.local_rank)
         args.device_pick = torch.device('cuda', args.local_rank)
-        LOGGER.info('Initializing process group... ')
+        logging.info('Initializing process group... ')
         dist.init_process_group(backend="nccl" if dist.is_nccl_available() else "gloo", init_method=args.dist_url,
                                 rank=args.local_rank, world_size=args.world_size)
 
