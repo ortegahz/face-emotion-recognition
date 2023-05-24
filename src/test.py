@@ -14,6 +14,8 @@ from torchvision import datasets, transforms
 if str(os.getcwd()) not in sys.path:
     sys.path.append(str(os.getcwd()))
 
+from src.utils.general import set_logging
+
 
 def plt_conf_matrix(y_true, y_pred, labels, ic, save_name):
     fig, ax = plt.subplots(figsize=(8, 8))
@@ -34,6 +36,7 @@ def parse_args():
 
 def main():
     args = parse_args()
+    set_logging(0)  # TODO
     logging.info(args)
 
     device = args.device

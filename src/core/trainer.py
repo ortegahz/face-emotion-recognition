@@ -2,6 +2,7 @@ import logging
 import numpy as np
 import shutil
 import copy
+import sys
 import os
 
 from copy import deepcopy
@@ -17,11 +18,15 @@ import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data.distributed import DistributedSampler
 
-import timm
+# import timm
 
 from src.core.loss import cross_entropy_with_label_smoothing
 from src.affectnet.robust_optimization import RobustOptimizer
 from src.utils.torch_utils import torch_distributed_zero_first
+from src.models.fer import Model
+
+sys.path.append('/tmp/pycharm_project_605/recognition/arcface_torch')
+from backbones import get_model
 
 
 class Trainer:
@@ -34,7 +39,8 @@ class Trainer:
         self.tf_std = [0.229, 0.224, 0.225]
         self.lr = 3e-5
         self.robust = True
-        self.path_ckpt = 'models/pretrained_faces/state_vggface2_enet0_new.pt'
+        # self.path_ckpt = 'models/pretrained_faces/state_vggface2_enet0_new.pt'
+        # self.path_ckpt = '/media/manu-pc/tmp/wf42m_pfc02_8gpus_r50_bs1k/model.pt'
         self.path_save = 'run/fer.pt'
         self.main_process = args.rank in [-1, 0]
 
@@ -61,14 +67,16 @@ class Trainer:
 
         self.criterion = cross_entropy_with_label_smoothing
 
-        self.model = timm.create_model('tf_efficientnet_b0_ns', pretrained=False)
-        self.model.classifier = torch.nn.Identity()
-        self.model.load_state_dict(torch.load(self.path_ckpt, map_location=self.device))
-        self.model.classifier = nn.Sequential(
-            nn.Linear(in_features=1280, out_features=8))  # TODO
-        if args.path_resume:
-            self.model = torch.load(args.path_resume, map_location=self.device)
-        self.model = self.model.cuda(self.device)
+        # self.model = timm.create_model('tf_efficientnet_b0_ns', pretrained=False)
+        # self.model = get_model('r50', dropout=0.0, fp16=False, num_features=512)
+        # self.model.load_state_dict(torch.load(self.path_ckpt, map_location=self.device))
+        # self.model.classifier = nn.Sequential(
+        #     nn.Linear(in_features=512, out_features=8))  # TODO
+        # if args.path_resume:
+        #     self.model = torch.load(args.path_resume, map_location=self.device)
+        # self.model = self.model.cuda(self.device)
+        self.model = Model(self.device)
+
         # self.model = SyncBatchNorm.convert_sync_batchnorm(self.model)  # acc decrease
         self.model, self.model_type = self.parallel_model(args, self.model, self.device)
 
