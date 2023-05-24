@@ -4,6 +4,7 @@ import torch
 import torch.nn as nn
 
 sys.path.append('/tmp/pycharm_project_605/recognition/arcface_torch')
+# sys.path.append('/media/manu/kingstop/workspace/insightface/recognition/arcface_torch')
 from backbones import get_model
 
 

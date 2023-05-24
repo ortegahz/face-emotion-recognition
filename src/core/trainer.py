@@ -35,8 +35,8 @@ class Trainer:
         self.batch_size = args.batch_size
         self.img_size = args.img_size
         self.device = args.device_pick
-        self.tf_mean = [0.485, 0.456, 0.406]
-        self.tf_std = [0.229, 0.224, 0.225]
+        self.tf_mean = [0.5, 0.5, 0.5]
+        self.tf_std = [0.5, 0.5, 0.5]
         self.lr = 3e-5
         self.robust = True
         # self.path_ckpt = 'models/pretrained_faces/state_vggface2_enet0_new.pt'

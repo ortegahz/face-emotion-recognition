@@ -4,15 +4,14 @@ import os
 import sys
 
 
-def set_logging(rank, dir_root='./'):
+def set_logging(rank, dir_root='run', name=''):
     if rank == 0:
         log_root = logging.getLogger()
         log_root.setLevel(logging.INFO)
         formatter = logging.Formatter("fer: %(asctime)s-%(message)s")
-        handler_file = logging.FileHandler(os.path.join(dir_root, "training.log"))
+        handler_file = logging.FileHandler(os.path.join(dir_root, f"{name}.log"))
         handler_stream = logging.StreamHandler(sys.stdout)
         handler_file.setFormatter(formatter)
         handler_stream.setFormatter(formatter)
         log_root.addHandler(handler_file)
         log_root.addHandler(handler_stream)
-        log_root.info('rank_id: %d' % rank)

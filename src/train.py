@@ -35,7 +35,7 @@ def main():
     args.local_rank, args.rank, args.world_size = get_envs()
     args.device_pick = select_device(args.device)
     args.local_rank, args.rank, args.world_size = get_envs()
-    set_logging(args.rank)
+    set_logging(args.rank, name='train')
     logging.info(f'training args are: {args}\n')
 
     if args.local_rank != -1:  # if DDP mode
