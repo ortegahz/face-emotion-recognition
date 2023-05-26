@@ -250,7 +250,7 @@ class Trainer:
                 epoch_accuracy, epoch_loss = self.train_in_step(data, label, epoch_accuracy, epoch_loss)
 
             dist.all_reduce(epoch_accuracy, op=dist.ReduceOp.SUM)
-            dist.all_reduce(epoch_accuracy, op=dist.ReduceOp.SUM)
+            dist.all_reduce(epoch_loss, op=dist.ReduceOp.SUM)
             epoch_accuracy /= len(self.train_dataset)
             epoch_loss /= len(self.train_dataset)
 
