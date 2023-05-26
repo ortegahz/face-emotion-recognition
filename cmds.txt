@@ -1,12 +1,19 @@
 # ssh
 cd /tmp/pycharm_project_359
 
+# statics
+len(glob.glob('/media/sdb/data/AffectNet/full_res_align/*/*/*'))
+len(glob.glob('/media/sdb/data/AffectNet/full_res/*/*/*'))
+
 # install
 pip install ipywidgets
 pip install scikit-learn==0.22
 
 # ipynb to py
 jupyter-notebook
+
+# data
+screen python src/affectnet/data_face_align_retina.py
 
 # train
 python src/train.py --dir_afn_root /media/sdb/data/AffectNet
@@ -17,3 +24,4 @@ python -m torch.distributed.launch --nproc_per_node 8 src/train.py --dir_afn_roo
 # test
 python src/test.py
 python src/test.py --img_size 112
+python src/test_cv.py --img_size 112

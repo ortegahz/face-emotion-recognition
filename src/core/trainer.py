@@ -3,6 +3,7 @@ import numpy as np
 import shutil
 import copy
 import sys
+import cv2
 import os
 
 from copy import deepcopy
@@ -43,27 +44,10 @@ class Trainer:
         # self.path_ckpt = '/media/manu-pc/tmp/wf42m_pfc02_8gpus_r50_bs1k/model.pt'
         self.path_save = 'run/fer.pt'
         self.main_process = args.rank in [-1, 0]
+        self.name_align = 'full_res_align'
 
-        self.dir_train = os.path.join(args.dir_afn_root, 'full_res', 'train')
-        self.dir_val = os.path.join(args.dir_afn_root, 'full_res', 'val')
-
-        self.train_transforms = transforms.Compose(
-            [
-                transforms.Resize((self.img_size, self.img_size)),
-                transforms.ToTensor(),
-                transforms.Normalize(mean=self.tf_mean,
-                                     std=self.tf_std)
-            ]
-        )
-
-        self.test_transforms = transforms.Compose(
-            [
-                transforms.Resize((self.img_size, self.img_size)),
-                transforms.ToTensor(),
-                transforms.Normalize(mean=self.tf_mean,
-                                     std=self.tf_std)
-            ]
-        )
+        self.dir_train = os.path.join(args.dir_afn_root, self.name_align, 'train')
+        self.dir_val = os.path.join(args.dir_afn_root, self.name_align, 'val')
 
         self.criterion = cross_entropy_with_label_smoothing
 
@@ -80,9 +64,22 @@ class Trainer:
         # self.model = SyncBatchNorm.convert_sync_batchnorm(self.model)  # acc decrease
         self.model, self.model_type = self.parallel_model(args, self.model, self.device)
 
+        self.transforms = transforms.Compose(
+            [
+                transforms.ToTensor(),
+                transforms.Normalize(mean=self.tf_mean,
+                                     std=self.tf_std)
+            ]
+        )
+
+        def cv_loader(path: str):
+            data = cv2.imread(path)
+            data = cv2.cvtColor(data, cv2.COLOR_BGR2RGB)
+            return data
+
         with torch_distributed_zero_first(args.rank):
             kwargs = {} if self.device == 'cpu' else {'num_workers': 8, 'pin_memory': False}
-            self.train_dataset = datasets.ImageFolder(root=self.dir_train, transform=self.train_transforms)
+            self.train_dataset = datasets.ImageFolder(root=self.dir_train, transform=self.transforms, loader=cv_loader)
             if self.model_type == 'normal' or self.model_type == 'dp':
                 self.train_loader = torch.utils.data.DataLoader(self.train_dataset, batch_size=self.batch_size,
                                                                 shuffle=True,
@@ -95,7 +92,7 @@ class Trainer:
                                                                 **kwargs)
             self.test_loader = None
             if args.rank in [-1, 0]:
-                self.test_dataset = datasets.ImageFolder(root=self.dir_val, transform=self.test_transforms)
+                self.test_dataset = datasets.ImageFolder(root=self.dir_val, transform=self.transforms, loader=cv_loader)
                 self.test_loader = torch.utils.data.DataLoader(self.test_dataset, batch_size=self.batch_size,
                                                                shuffle=False,
                                                                **kwargs)
@@ -236,11 +233,13 @@ class Trainer:
 
         best_acc = 0
         best_model = None
+        epoch_loss = torch.zeros(1, device=self.device)
+        epoch_accuracy = torch.zeros(1, device=self.device)
         for epoch in range(n_epochs):
             if self.model_type == 'ddp':
                 self.train_sampler.set_epoch(epoch)
-            epoch_loss = torch.zeros(1, device=self.device)
-            epoch_accuracy = torch.zeros(1, device=self.device)
+            epoch_loss *= 0.
+            epoch_accuracy *= 0.
             self.model.train()
             self.pbar = enumerate(self.train_loader)
             if self.main_process:

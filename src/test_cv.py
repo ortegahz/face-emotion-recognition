@@ -1,10 +1,10 @@
 import os
 import sys
-import cv2
 import argparse
 import logging
+import cv2
 import numpy as np
-from PIL import Image
+# from PIL import Image
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from sklearn.metrics import plot_confusion_matrix
@@ -37,8 +37,10 @@ def parse_args():
 
 
 def main():
+    CLASS_NAMES = ['Anger', 'Contempt', 'Disgust', 'Fear', 'Happiness', 'Neutral', 'Sadness', 'Surprise']
+
     args = parse_args()
-    set_logging(name='test')
+    set_logging(name='test_cv')
     logging.info(args)
 
     device = args.device
@@ -46,23 +48,19 @@ def main():
     model = torch.load(args.path_ckpt, map_location=device)
     model = model.eval()
 
-    _transforms = transforms.Compose(
+    train_transforms = transforms.Compose(
         [
+            transforms.Resize((args.img_size, args.img_size)),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.5, 0.5, 0.5],
                                  std=[0.5, 0.5, 0.5])
         ]
     )
 
-    def cv_loader(path: str):
-        data = cv2.imread(path)
-        data = cv2.cvtColor(data, cv2.COLOR_BGR2RGB)
-        return data
-
     dir_train = os.path.join(args.dir_afn_root, args.name_align, 'train')
     dir_val = os.path.join(args.dir_afn_root, args.name_align, 'val')
 
-    train_dataset = datasets.ImageFolder(root=dir_train, transform=_transforms, loader=cv_loader)
+    train_dataset = datasets.ImageFolder(root=dir_train, transform=train_transforms)
     class_to_idx = train_dataset.class_to_idx
     idx_to_class = {idx: cls for cls, idx in class_to_idx.items()}
 
@@ -75,9 +73,14 @@ def main():
             for img_name in os.listdir(class_dir):
                 filepath = os.path.join(class_dir, img_name)
                 # img = Image.open(filepath)
-                img = cv_loader(filepath)
-                img_tensor = _transforms(img)
-                img_tensor.unsqueeze_(0)
+                # img_tensor = test_transforms(img)
+                # img_tensor.unsqueeze_(0)
+                img = cv2.imread(filepath)
+                img = cv2.resize(img, (args.img_size, args.img_size))
+                img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+                img = np.transpose(img, (2, 0, 1))
+                img_tensor = torch.from_numpy(img).unsqueeze(0).float()
+                img_tensor.div_(255).sub_(0.5).div_(0.5)
                 scores = model(img_tensor.to(device))
                 scores = scores[0].data.cpu().numpy()
                 y_scores_val.append(scores)
