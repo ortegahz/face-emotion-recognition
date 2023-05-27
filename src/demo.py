@@ -39,11 +39,12 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--path_ckpt_fer', default='/home/manu/tmp/run/fer.pt', type=str)
     parser.add_argument('--path_ckpt_fd', default='/home/manu/tmp/mobilenet_v1_0_25/retina', type=str)
-    # parser.add_argument('--path_video', default='/media/manu/samsung/videos/at2021/mp4/Video1.mp4', type=str)
-    parser.add_argument('--path_video', default='rtsp://192.168.1.185:554/ch0_1', type=str)
+    parser.add_argument('--path_video', default='/media/manu/samsung/videos/at2021/mp4/Video1年级.mp4', type=str)
+    # parser.add_argument('--path_video', default='rtsp://192.168.1.185:554/ch0_1', type=str)
+    # parser.add_argument('--path_video', default='rtsp://192.168.1.62:554/ch0_1', type=str)
     parser.add_argument('--name_window', default='result', type=str)
     parser.add_argument('--device', default='cuda:0', type=str)
-    parser.add_argument('--th_fer', default=0.0, type=float)
+    parser.add_argument('--th_fer', default=0.35, type=float)
     return parser.parse_args()
 
 
@@ -105,7 +106,7 @@ def main():
                 score_pred = scores[idx_pred]
                 info = name_pred + ' ' + '%f' % score_pred
                 pt = (int(bbox[0]), int(bbox[1]))
-                if score_pred > args.th_fer:
+                if score_pred > args.th_fer and not name_pred == 'Neutral':
                     cv2.putText(frame, info, pt, cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 0, 255), 2)
 
         cv2.imshow(args.name_window, frame)
